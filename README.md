@@ -11,8 +11,9 @@
 # How to make development environment
 
 ## Clone( or Download) TensorFlowSharp
-https://github.com/migueldeicaza/TensorFlowSharp
-Link of dll file
+https://github.com/migueldeicaza/TensorFlowSharp  
+
+Link of dll file  
 https://github.com/migueldeicaza/TensorFlowSharp#working-on-tensorflowsharp
 
 ## ubuntu 16.04
@@ -133,7 +134,7 @@ After expansion, rename from tensorflow.dll to libtensorflow.dll and move in C:\
 
 ### Install VisualStudio
 download and install the installer from the below link.  
-https://www.visualstudio.com/downloads/
+https://www.visualstudio.com/downloads/  
 Follow the instructions to install the tool.  
 
 ### Build the solution
