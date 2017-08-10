@@ -468,11 +468,11 @@ runner.AddInput(graph["input"][0], tensor).AddInput(graph["dropout"][0], 0.5f).F
 <!-- 一応実行時の結果の画像を示す。 -->
 It shows the image of the result at the time of execution.
 <!-- Manual_model.pbの実行結果 -->
-Execution result of Manual_model.pb
+Execution result of Manual_model.pb  
 <img width="571" alt="スクリーンショット 2017-06-07 14.49.23.png" src="https://qiita-image-store.s3.amazonaws.com/0/70879/63179e23-d582-d639-c2c6-4664077a5d2d.png">
 
 <!-- Auto_model.pbの実行結果 -->
-Execution result of Auto_model.pb
+Execution result of Auto_model.pb  
 <img width="571" alt="スクリーンショット 2017-06-07 14.48.37.png" src="https://qiita-image-store.s3.amazonaws.com/0/70879/514fc8f3-98e0-7ade-1957-88d9e9bc4bf4.png">
 
 
