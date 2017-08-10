@@ -5,7 +5,7 @@
 
 # Quick start
 1. To set up the development environment and build TensorFlowSharp, please refer to the following.
-2. Create a CNN model (Unspecified)
+2. [Create a CNN model](./how_to_make_models.md)
 3. Create a project with unity (Unspecified)
 
 # How to make development environment

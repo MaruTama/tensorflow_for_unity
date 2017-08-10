@@ -1,4 +1,4 @@
- <!-- 直接、C#のコードでグラフを作成しようとしたが、どうやら先人たちはPython上でグラフを書き、学習モデルを作成後、それを他の言語上で読み込んでいる。
+<!-- 直接、C#のコードでグラフを作成しようとしたが、どうやら先人たちはPython上でグラフを書き、学習モデルを作成後、それを他の言語上で読み込んでいる。
 
  モデルを読み込む際に、Android（Java）やC++上でも同様であるが、チェックポイント(シリアル化された変数)のエクスポートデータを直接読込むことはできない.
 
@@ -20,15 +20,17 @@ There are two methods, there are a manual conversion method and an automatic con
 # Version
 macOS Sierra
 TensorFlow on python3: 1.0.0
-TensorFlow on c#(c): 1.0.0-rc0
+TensorFlow on c#(c): 1.1.0-rc0
 Python 3.6.0
 Visul Studio for Mac ver 7.0.1
 
 # Create a CNN model.
-まずは、以下のCNNのモデルを作成する.
-input_data.pyを、[ここ](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/tutorials/mnist/input_data.py
+First, Make source code for CNN model.
+Name is model.py.
+
+Download input_data.py from [here](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/tutorials/mnist/input_data.py
  "https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/tutorials/mnist/input_data.py
-")から落として、model.pyの同層に配置する。
+") and place it on the same directory of model.py.
 
 
 ```py:model.py
@@ -39,7 +41,7 @@ import tensorflow as tf
 import shutil
 import os
 
-# モデルの出力先
+# Output directory of model
 export_dir = './models'
 
 if os.path.exists(export_dir):
@@ -137,20 +139,21 @@ with g.as_default():
             {x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}, sess))
 ```
 
-Reference
-https://github.com/miyosuda/TensorFlowAndroidMNIST/blob/master/trainer-script/expert.py
-[TensorFlow 畳み込みニューラルネットワークで手書き認識率99.2%の分類器を構築](http://qiita.com/haminiku/items/36982ae65a770565458d?1447141109024=1 "TensorFlow 畳み込みニューラルネットワークで手書き認識率99.2%の分類器を構築")
+Reference1 :  https://github.com/miyosuda/TensorFlowAndroidMNIST/blob/master/trainer-script/expert.py  
+Reference2 : [TensorFlow 畳み込みニューラルネットワークで手書き認識率99.2%の分類器を構築](http://qiita.com/haminiku/items/36982ae65a770565458d?1447141109024=1 "TensorFlow 畳み込みニューラルネットワークで手書き認識率99.2%の分類器を構築")
 
 
-## 手動で変換する方法
+## How to manually convert
+<!-- 学習後に、Variableの値をevalで取り出して、Constantにする。
+　流れとしてはViriables -> ndarray -> Constantと変換する。その後、Constantでグラフを再構成して、プロトコルバッファとして書き出す。名前は、C#上でモデルを読込むときに対応させるためのもの。 -->
+After learning, we retrieve the value of Variable to use eval() and make it Constant.
 
-　学習後に、Variableの値をevalで取り出して、Constantにする。
-　流れとしてはViriables -> ndarray -> Constantと変換する。その後、Constantでグラフを再構成して、プロトコルバッファとして書き出す。名前は、C#上でモデルを読込むときに対応させるためのもの。
+As a flow convert to Viriables -> ndarray -> Constant. After that, Constant reconstructs the graph and writes it as a protocol buffer. The name is to correspond to when loading the model on C #.
 
 ```py:
 with tf.Session() as sess:
         ...
-        # Viriablesの内容をndarrayに変換する
+        # Convert the contents of Viriables to ndarray
         _W_conv1 = W_conv1.eval(sess)
         _b_conv1 = b_conv1.eval(sess)
         _W_conv2 = W_conv2.eval(sess)
@@ -161,10 +164,10 @@ with tf.Session() as sess:
         _b_fc2 = b_fc2.eval(sess)
 
 
-# ndarrayをConstantに変換後、新しいグラフを再構成する。
+# After converting ndarray to a constant, reconstruct the new graph.
 g_2 = tf.Graph()
 with g_2.as_default():
-    # 入力ノードは"input"とする。これは、.pb を読み込むときに指定する。
+    # The input node is "input". This is specified when loading .pb.
     x_2 = tf.placeholder("float", shape=[None, 784], name="input")
 
     W_conv1_2 = tf.constant(_W_conv1, name="constant_W_conv1")
@@ -186,42 +189,54 @@ with g_2.as_default():
     W_fc2_2 = tf.constant(_W_fc2, name="constant_W_fc2")
     b_fc2_2 = tf.constant(_b_fc2, name="constant_b_fc2")
 
-    # 学習後のデータを出力するだけなので、ドロップアウトは入れなくて良い
-    # 出力ノードは"output"とする。入力ノードと同様に.pb を読み込むときに指定する。
+    # Since it only outputs data after learning, it is not necessary "Dropout layer".
+    # The output node is "output". Specify this when loading .pb in the same way as the input node.
     y_conv_2 = tf.nn.softmax(tf.matmul(h_fc1_2, W_fc2_2) + b_fc2_2, name="output")
 
     with tf.Session() as sess_2:
         init_2 = tf.global_variables_initializer();
         sess_2.run(init_2)
 
-        # グラフを ProtocolBuffersファイルとして書き出す。
+        # Output the graph as a ProtocolBuffers file.
         graph_def = g_2.as_graph_def()
         tf.train.write_graph(graph_def, export_dir, 'Manual_model.pb', as_text=False)
 
-        # 訓練後のモデルのテストを行う
+        # Test the model after training.
         y__2 = tf.placeholder("float", [None, 10])
         correct_prediction_2 = tf.equal(tf.argmax(y_conv_2, 1), tf.argmax(y__2, 1))
         accuracy_2 = tf.reduce_mean(tf.cast(correct_prediction_2, "float"))
 
-        # スコア表示
+        # Score display.
         print("check accuracy %g" % accuracy_2.eval(
             {x_2: mnist.test.images, y__2: mnist.test.labels}, sess_2))
 
 ```
 
-参考
-https://github.com/miyosuda/TensorFlowAndroidMNIST/blob/master/trainer-script/expert.py
-[TesorFlow: Pythonで学習したデータをAndroidで実行](http://qiita.com/miyosuda/items/e53ad2efeed0ff040606 "TesorFlow: Pythonで学習したデータをAndroidで実行")
+Reference1 :
+https://github.com/miyosuda/TensorFlowAndroidMNIST/blob/master/trainer-script/expert.py  
+Reference2 : [TesorFlow: Pythonで学習したデータをAndroidで実行](http://qiita.com/miyosuda/items/e53ad2efeed0ff040606 "TesorFlow: Pythonで学習したデータをAndroidで実行")
 
 
-## 自動で変換する方法
-[TensorFlowで学習してモデルファイルを小さくしてコマンドラインアプリを作るシンプルな流れ](http://qiita.com/YusukeSuzuki@github/items/476e599d84eb3d6d184d#3-%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF%E3%83%9D%E3%82%A4%E3%83%B3%E3%83%88%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E3%82%92protocolbuffers%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E3%81%AB%E5%A4%89%E6%8F%9B%E3%81%99%E3%82%8B "TensorFlowで学習してモデルファイルを小さくしてコマンドラインアプリを作るシンプルな流れ")
-上記の記事のように_freeze_graph.py_は使おうとしたが、エラーが何度も出て、r12の新しいモデル形式への未対応やpython3のとき引数が増えたりするので面倒になり、使わないことにした。
+## How to convert automatically
+
+<!-- 上記の記事のように_freeze_graph.py_は使おうとしたが、エラーが何度も出て、r12の新しいモデル形式への未対応やpython3のとき引数が増えたりするので面倒になり、使わないことにした。 -->
+
+First, I tried to use "freeze_graph.py" as in [this article](http://qiita.com/YusukeSuzuki@github/items/476e599d84eb3d6d184d#3-%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF%E3%83%9D%E3%82%A4%E3%83%B3%E3%83%88%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E3%82%92protocolbuffers%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E3%81%AB%E5%A4%89%E6%8F%9B%E3%81%99%E3%82%8B "TensorFlowで学習してモデルファイルを小さくしてコマンドラインアプリを作るシンプルな流れ").
+
+However, it was troublesome as errors got out many times, not compatible with r12 's new model format, and arguments increased when it was python 3.
+
+Therefore, I decided not to use it.
 
 
-そのため、今回は_convert_variables_to_constants()_のみを使った。
+<!-- そのため、今回は convert_variables_to_constants()のみを使った。
 モデルの学習後に、convert_variables_to_constants()でvariableからconstantへ変換後、プロトコルバッファとして書き出す。
-　ただし、手動で変換していたときは、グラフの再構成するときに各ノードに名前をつけていたが、今回は学習を行ったグラフを変換するため、各ノードに名前をつけておく必要がある。この名前がC#上で読込むときに対応する。
+　ただし、手動で変換していたときは、グラフの再構成するときに各ノードに名前をつけていたが、今回は学習を行ったグラフを変換するため、各ノードに名前をつけておく必要がある。この名前がC#上で読込むときに対応する。 -->
+
+So, We used convert_variables_to_constants().
+
+After model learning, convert from variable to constant with convert_variables_to_constants() and write it as a protocol buffer.
+
+However, when manually converting, each node is given a name when reconstructing the graph, but this time it is necessary to name each node in order to convert the learned graph is there. Corresponds when this name is read on C #.
 
 ```py:
 with g.as_default() as gr_def:
@@ -240,21 +255,28 @@ with g.as_default() as gr_def:
 
         ...
 
-        # variablesをconstantsに変換したグラフを生成する
-        # 出力ノードの名前を指定
+        # Make a graph with converting variables to constants.
+        # Specify the name of the output node.
         converted_graph = graph_util.convert_variables_to_constants(sess, sess.graph_def, ['output'])
-        # プロトコルバッファとして書き出し
+        # Output as a protocol buffer.
         tf.train.write_graph(converted_graph, export_dir, 'Auto_model.pb',  as_text=False)
 ```
-参考
-http://tyfkda.github.io/blog/2016/09/14/tensorflow-protobuf.html
+Reference : [学習済みグラフをプロトコルバッファ形式で保存する](http://tyfkda.github.io/blog/2016/09/14/tensorflow-protobuf.html)
 
-# 読込み及び推測
 
-手動での変換と、convert_variables_to_constants()を用いた変換では、モデルの実行方法が少し異なる。
+# model loading and inference
+
+<!-- 手動での変換と、convert_variables_to_constants()を用いた変換では、モデルの実行方法が少し異なる。
 　手動での変換では推論では使わないDropoutは入れてないが、convert_variables_to_constants()で変換したときDropoutのplaceholderはそのままなので、実行時に値を入れる必要がある。
 
-以下に手動で変換したときに書き出したモデルのManual_model.pbの読込み及び推測のコードを示す。
+以下に手動で変換したときに書き出したモデルのManual_model.pbの読込み及び推測のコードを示す。 -->
+
+The manual conversion and the conversion using convert_variables_to_constants (), the model execution method differs slightly.
+
+Manual conversion does not include "Dropout layer", which is not used in inference, but when transforming with convert_variables_to_constants (), the placeholder of Dropout remains unchanged, so you need to enter a value at run time.
+
+The code for loading and being inference Manual_model.pb of the model outputed when manually converted below is shown below.
+
 
 ```c#:Sample.cs
 using System;
@@ -297,16 +319,20 @@ namespace SampleTest
 			}
 		}
 
-		//開始モデルは、非常に特定の正規化されたフォーマット（特定の画像サイズ、入力テンソルの形状、正規化されたピクセル値など）
-		//でテンソルによって記述された画像を入力として取ります。
-		//このファンクションは、入力としてJPEGでエンコードされた文字列を取り込み、
-		//入力モデルとしての入力として適したテンソルを戻すTensorFlow操作のグラフを作成します。
+    // The inception model takes as input the image described by a Tensor in a very
+		// specific normalized format (a particular image size, shape of the input tensor,
+		// normalized pixel values etc.).
+		//
+		// This function constructs a graph of TensorFlow operations which takes as
+		// input a JPEG-encoded string and returns a tensor suitable as input to the
+		// inception model.
 		static void ConstructGraphToNormalizeImage(out TFGraph graph, out TFOutput input, out TFOutput output)
 		{
-			// - モデルは28x28ピクセルにスケーリングされた画像で訓練されました。
-			// - モノクロなので表される色は1色のみ。（値 - 平均）/ スケールを使用してfloatに変換して使用する。
-			// 画素値を0-255 から 0-1 の範囲にするので、変換値 = (画素値 - Mean) / Scale の式から,
-			// Mean = 255, Scale = 255 となる。
+			// - The model was trained after with images scaled to 28x28 pixels.
+			// - Image is monochrome, only one color is represented.
+      // Since the pixel value convert the range from 0~255 to 0~1,
+      // Mean = 255, Scale = 255
+      // using [the conversion value = (pixel value - Mean) / Scale].
 
 			const int W = 28;
 			const int H = 28;
@@ -328,14 +354,14 @@ namespace SampleTest
 					y: graph.Const(Mean, "mean")),
 				y: graph.Const(Scale, "scale"));
 		}
-		// pythonで作成したモデルの読込を行う
+		// Load models created with python.
 		void MNSIT_read_model()
 		{
 			var graph = new TFGraph();
 
 			//var model = File.ReadAllBytes("tensorflow_inception_graph.pb");
 
-			// シリアル化されたGraphDefをファイルからロードします。
+			// Load serialized GraphDef from file.
 			var model = File.ReadAllBytes("Manual_model.pb");
 			graph.Import(model, "");
 
@@ -345,20 +371,19 @@ namespace SampleTest
 
 				var file = "temp.jpg";
 
-				//画像ファイルに対して推論を実行する
-				//複数のイメージの場合、session.Run（）はループで（同時に）呼び出すことができます。
-				//あるいは、モデルが画像データのバッチを入力として受け入れるので、画像をバッチ処理することができる。
+				// Execute inference on an image file.
+				// For multiple images, session.Run () can be called (simultaneously) in a loop.
+				// Alternatively, the model accepts a batch of image data as input, so you can batch the image.
 				var tensor = CreateTensorFromImageFile(file);
 
 				var runner = session.GetRunner();
-				// 学習モデルのグラフを指定する。
-				// 入出力テンソルの名前をsessionに登録する
-				// 手動で変換したモデルの読込のときは、.AddInput(graph["dropout"][0], 0.5f)はいらない。
+				// Specify a graph of the learning model.
+				// Register the name of the input / output tensor in session.
+        // When reading manually converted models, .AddInput (graph ["dropout"] [0], 0.5f) does not use.
 				runner.AddInput(graph["input"][0], tensor).Fetch(graph["output"][0]);
 				var output = runner.Run();
 
-				// output[0].Value（）は、「バッチ」内の各画像のラベルの確率を含むベクトルです。 バッチサイズは1であった。
-				//最も可能性の高いラベルインデックスを見つけます。
+				// output[0].Value（）is the background containing the accuracy of the label of each image in the "batch". The batch size was 1.
 				var result = output[0];
 				var rshape = result.Shape;
 				if (result.NumDims != 2 || rshape[0] != 1)
@@ -375,7 +400,7 @@ namespace SampleTest
 
 				var bestIdx = 0;
 				float best = 0;
-                // 尤も確率が高いものを調べて表示する
+        // Find and display objects with most probability
 				var probabilities = ((float[][])result.GetValue(true))[0];
 				for (int i = 0; i < probabilities.Length; i++)
 				{
@@ -402,7 +427,8 @@ namespace SampleTest
 }
 ```
 
-以下のlabels.txtとtemp.jpg、作成した学習モデルを実行ファイルと同層に配置する。
+<!-- 以下のlabels.txtとtemp.jpg、作成した学習モデルを実行ファイルと同層に配置する。 -->
+Below labels.txt and temp.jpg and the created learning model in the same layer as the executable file.
 
 ```:labels.txt
 0
@@ -417,13 +443,14 @@ namespace SampleTest
 9
 ```
 
-temp.jpg ↓
+temp.jpg ↓  
 ![temp.jpg](https://qiita-image-store.s3.amazonaws.com/0/70879/310bbb5d-0374-85d4-58a2-b782c75b70f9.jpeg)
 
 
 
 
-convert_variables_to_constants()で変換したときは、以下のようにコードを変更する。
+<!-- convert_variables_to_constants()で変換したときは、以下のようにコードを変更する。 -->
+When converted with convert_variables_to_constants (), change the code as follows.
 
 ```
 var model = File.ReadAllBytes("Manual_model.pb");
@@ -438,15 +465,19 @@ runner.AddInput(graph["input"][0], tensor).AddInput(graph["dropout"][0], 0.5f).F
 ```
 
 
-一応実行時の結果の画像を示す。
-Manual_model.pbの実行結果
+<!-- 一応実行時の結果の画像を示す。 -->
+It shows the image of the result at the time of execution.
+<!-- Manual_model.pbの実行結果 -->
+Execution result of Manual_model.pb
 <img width="571" alt="スクリーンショット 2017-06-07 14.49.23.png" src="https://qiita-image-store.s3.amazonaws.com/0/70879/63179e23-d582-d639-c2c6-4664077a5d2d.png">
-Auto_model.pbの実行結果
+
+<!-- Auto_model.pbの実行結果 -->
+Execution result of Auto_model.pb
 <img width="571" alt="スクリーンショット 2017-06-07 14.48.37.png" src="https://qiita-image-store.s3.amazonaws.com/0/70879/514fc8f3-98e0-7ade-1957-88d9e9bc4bf4.png">
 
 
 
-# 学習
+<!-- # 学習
 
 C#上で学習をさせたくて、一からモデルを構築しようとしたが、最適化関数が一つしか見つからず、リファレンスもなくなってたので使い方が分からず詰んだ。また、python上でモデルをつくって読み込み後、グラフを再構築すればよいとも考えたが、チェックポイントファイルから最適化器のデータを取り除いてあるので、pythonので書いてもC#上では使えない。
-今後の課題としては、最適化関数の使い方を知ってC#上で学習をさせたい。
+今後の課題としては、最適化関数の使い方を知ってC#上で学習をさせたい。 -->
