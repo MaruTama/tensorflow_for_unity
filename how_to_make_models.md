@@ -146,7 +146,7 @@ Reference2 : [TensorFlow 畳み込みニューラルネットワークで手書�
 ## How to manually convert
 <!-- 学習後に、Variableの値をevalで取り出して、Constantにする。
 　流れとしてはViriables -> ndarray -> Constantと変換する。その後、Constantでグラフを再構成して、プロトコルバッファとして書き出す。名前は、C#上でモデルを読込むときに対応させるためのもの。 -->
-After learning, we retrieve the value of Variable to use eval() and make it Constant.
+After learning, That retrieve the value of Variable to use eval() and make it Constant.
 
 As a flow convert to Viriables -> ndarray -> Constant. After that, Constant reconstructs the graph and writes it as a protocol buffer. The name is to correspond to when loading the model on C #.
 
@@ -232,7 +232,7 @@ Therefore, I decided not to use it.
 モデルの学習後に、convert_variables_to_constants()でvariableからconstantへ変換後、プロトコルバッファとして書き出す。
 　ただし、手動で変換していたときは、グラフの再構成するときに各ノードに名前をつけていたが、今回は学習を行ったグラフを変換するため、各ノードに名前をつけておく必要がある。この名前がC#上で読込むときに対応する。 -->
 
-So, We used convert_variables_to_constants().
+So, I used convert_variables_to_constants().
 
 After model learning, convert from variable to constant with convert_variables_to_constants() and write it as a protocol buffer.
 
@@ -400,7 +400,7 @@ namespace SampleTest
 
 				var bestIdx = 0;
 				float best = 0;
-        // Find and display objects with most probability
+        // Find and display numbers with most probability
 				var probabilities = ((float[][])result.GetValue(true))[0];
 				for (int i = 0; i < probabilities.Length; i++)
 				{
