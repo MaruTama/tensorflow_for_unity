@@ -48,28 +48,27 @@ namespace SampleTest
 		{
 			// - モデルは28x28ピクセルにスケーリングされた画像で訓練されました。
 			// - モノクロなので表される色は1色のみ。（値 - 平均）/ スケールを使用してfloatに変換して使用する。
-			// 画素値を0-255 から 0-1 の範囲にするので、変換値 = (画素値 - Mean) / Scale の式から,
-			// Mean = 255, Scale = 255 となる。
+            // 画素値を0-255 から 0-1 の範囲にするので、変換値 = (Mean - 画素値) / Scale の式から,
+            // Mean = 255, Scale = 255 となる。
 
-			const int W = 28;
-			const int H = 28;
-			const float Mean = 255;
-			const float Scale = 255;
-			const int channels = 1;
+            const int W = 28;
+            const int H = 28;
+            const float Mean = 255;
+            const float Scale = 255;
+            const int channels = 1;
 
-			graph = new TFGraph();
-			input = graph.Placeholder(TFDataType.String);
+            graph = new TFGraph();
+            input = graph.Placeholder(TFDataType.String);
 
-			output = graph.Div(
-				x: graph.Sub(
-					x: graph.ResizeBilinear(
-						images: graph.ExpandDims(
-							input: graph.Cast(
-								graph.DecodeJpeg(contents: input, channels: channels), DstT: TFDataType.Float),
-							dim: graph.Const(0, "make_batch")),
-						size: graph.Const(new int[] { W, H }, "size")),
-					y: graph.Const(Mean, "mean")),
-				y: graph.Const(Scale, "scale"));
+            output = graph.Div(
+                x: graph.Sub(
+                  x: graph.Const(Mean, "mean"),
+                    y: graph.ResizeBilinear(
+                        images: graph.ExpandDims(
+                            input: graph.Cast(graph.DecodeJpeg(contents: input, channels: channels), DstT: TFDataType.Float),
+                            dim: graph.Const(0, "make_batch")),
+                        size: graph.Const(new int[] { W, H }, "size"))),
+                y: graph.Const(Scale, "scale"));
 		}
 		// pythonで作成したモデルの読込を行う
 		public void MNSIT_read_model()
